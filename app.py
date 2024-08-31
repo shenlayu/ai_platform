@@ -2,14 +2,22 @@ import gradio as gr
 import os
 import time
 from chat import chat
+from search import search
 
 messages = []
 current_file_text = None
 
 def add_text(history, text):
     global messages
+    if text.startswith("/search "):
+        search_query = text[len("/search "):]
+        search_result = search(search_query)
+        messages.append({"role": "user", "content": search_result})
+    else:
+        messages.append({"role": "user", "content": text})
+    # messages.append({"role": "user", "content": text})
+
     history = history + [(text, None)]
-    messages.append({"role": "user", "content": text})
     
     return history, gr.update(value="", interactive=False)
 

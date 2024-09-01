@@ -4,11 +4,14 @@ import time
 from chat import chat
 from search import search
 from fetch import fetch
+from stt import audio2text
+from pdf import generate_text, generate_answer, generate_summary
 messages = []
 current_file_text = None
-
+isTxt = False
+isFile = False
 def add_text(history, text):
-    global messages
+    global messages, current_file_text, isFile
     if text.startswith("/search "):
         search_query = text[len("/search "):]
         search_result = search(search_query)
@@ -26,15 +29,18 @@ def add_text(history, text):
     return history, gr.update(value="", interactive=False)
 
 def add_file(history, file):
-    global messages
+    global messages, current_file_text, isTxt
     history = history + [((file.name,), None)]
-    messages.append({"role": "user", "content": f"File uploaded: {file.name}"})
+    if file.name.endswith(".wav"):
+        audio_text = audio2text(file.name)
+        messages.append({"role": "user", "content": f"{audio_text}"})
+    else:
+        messages.append({"role": "user", "content": f"File uploaded: {file.name}"})
     
     return history
 
 def bot(history):
-    global messages
-    
+    global messages, current_file_text, isTxt, isFile
     response_text = ""
 
     for chunk in chat(messages):
@@ -65,6 +71,7 @@ with gr.Blocks() as demo:
         bot, chatbot, chatbot
     )
     txt_msg.then(lambda: gr.update(interactive=True), None, [txt], queue=False)
+    # TODO 这个地方需要保证处理的时候不能再输入，而且需要生成的时候不能再输入，
     file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
         bot, chatbot, chatbot
     )

@@ -3,6 +3,7 @@ import os
 import time
 from chat import chat
 from search import search
+from tts import text2audio
 
 messages = []
 current_file_text = None
@@ -33,10 +34,19 @@ def bot(history):
     
     response_text = ""
 
-    for chunk in chat(messages):
-        response_text += chunk
-        history[-1][1] = response_text
-        yield history
+    # 检验是否是音频文件
+    if messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/audio "):
+        for chunk in chat(messages):
+            response_text += chunk
+        audio_path = text2audio(response_text)
+        if audio_path:
+            history[-1][1] = (audio_path, )
+            yield history
+    else:
+        for chunk in chat(messages):
+            response_text += chunk
+            history[-1][1] = response_text
+            yield history
 
     messages.append({"role": "assistant", "content": response_text})
 

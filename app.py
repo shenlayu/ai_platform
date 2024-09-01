@@ -6,6 +6,7 @@ from search import search
 from fetch import fetch
 from stt import audio2text
 from pdf import generate_answer, generate_summary
+from tts import text2audio
 
 messages = []
 current_file_text = None
@@ -18,14 +19,14 @@ def add_text(history, text):
         search_query = text[len("/search "):]
         search_result = search(search_query)
         messages.append({"role": "user", "content": search_result})
-    elif text.startswith("/fetch"):
+    elif text.startswith("/fetch"): # 检验是否是fetch命令
         fetch_url = text[len("/fetch "):]
         fetch_result = fetch(fetch_url)
         messages.append({"role": "user", "content": fetch_result})
-    elif text.startswith("/file"):
+    elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
+        isFile = True
         question = text[len("/file "):].strip()
         user_message = question
-        isFile = True
         messages.append({"role": "user", "content": user_message})
     else:
         messages.append({"role": "user", "content": text})
@@ -37,13 +38,13 @@ def add_text(history, text):
 def add_file(history, file):
     global messages, current_file_text, isTxt
     history = history + [((file.name,), None)]
-    if file.name.endswith(".wav"):
+    if file.name.endswith(".wav"): # 检验是否是音频文件
         audio_text = audio2text(file.name)
         messages.append({"role": "user", "content": f"{audio_text}"})
-    elif file.name.endswith(".txt"):
+    elif file.name.endswith(".txt"): # 检验是否是txt文件，如果是，设置isTxt为True，用于bot中后续处理
+        isTxt = True
         current_file_text = open(file.name).read()
         messages.append({"role": "user", "content": f"{file.name}"})
-        isTxt = True
     else:
         messages.append({"role": "user", "content": f"File uploaded: {file.name}"})
     
@@ -51,13 +52,13 @@ def add_file(history, file):
 
 def bot(history):
     global messages, current_file_text, isTxt, isFile
-    if isTxt:
+    if isTxt: # 如果是txt文件，生成summary
         isTxt = False
         summary = generate_summary(current_file_text)
         messages.append({"role": "assistant", "content": f"{summary}"})
         history[-1][1] = summary
         yield history
-    elif isFile:
+    elif isFile: # 如果是file命令，生成answer
         isFile = False
         if current_file_text:
             answer = generate_answer(current_file_text, messages[-1]['content'])
@@ -67,6 +68,13 @@ def bot(history):
         messages.append({"role": "assistant", "content": assistant_message})
         history[-1][1] = assistant_message
         yield history
+    elif messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/audio "): # 检验是否是音频文件
+        for chunk in chat(messages):
+            response_text += chunk
+        audio_path = text2audio(response_text)
+        if audio_path:
+            history[-1][1] = (audio_path, )
+            yield history
     else:
         response_text = ""
 

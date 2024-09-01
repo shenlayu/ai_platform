@@ -3,7 +3,7 @@ import os
 import time
 from chat import chat
 from search import search
-
+from fetch import fetch
 messages = []
 current_file_text = None
 
@@ -13,6 +13,10 @@ def add_text(history, text):
         search_query = text[len("/search "):]
         search_result = search(search_query)
         messages.append({"role": "user", "content": search_result})
+    elif text.startswith("/fetch"):
+        fetch_url = text[len("/fetch "):]
+        fetch_result = fetch(fetch_url)
+        messages.append({"role": "user", "content": fetch_result})
     else:
         messages.append({"role": "user", "content": text})
     # messages.append({"role": "user", "content": text})

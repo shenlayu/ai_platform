@@ -5,11 +5,13 @@ from chat import chat
 from search import search
 from fetch import fetch
 from stt import audio2text
-from pdf import generate_text, generate_answer, generate_summary
+from pdf import generate_answer, generate_summary
+
 messages = []
 current_file_text = None
 isTxt = False
 isFile = False
+
 def add_text(history, text):
     global messages, current_file_text, isFile
     if text.startswith("/search "):
@@ -20,9 +22,13 @@ def add_text(history, text):
         fetch_url = text[len("/fetch "):]
         fetch_result = fetch(fetch_url)
         messages.append({"role": "user", "content": fetch_result})
+    elif text.startswith("/file"):
+        question = text[len("/file "):].strip()
+        user_message = question
+        isFile = True
+        messages.append({"role": "user", "content": user_message})
     else:
         messages.append({"role": "user", "content": text})
-    # messages.append({"role": "user", "content": text})
 
     history = history + [(text, None)]
     
@@ -34,6 +40,10 @@ def add_file(history, file):
     if file.name.endswith(".wav"):
         audio_text = audio2text(file.name)
         messages.append({"role": "user", "content": f"{audio_text}"})
+    elif file.name.endswith(".txt"):
+        current_file_text = open(file.name).read()
+        messages.append({"role": "user", "content": f"{file.name}"})
+        isTxt = True
     else:
         messages.append({"role": "user", "content": f"File uploaded: {file.name}"})
     
@@ -41,14 +51,31 @@ def add_file(history, file):
 
 def bot(history):
     global messages, current_file_text, isTxt, isFile
-    response_text = ""
-
-    for chunk in chat(messages):
-        response_text += chunk
-        history[-1][1] = response_text
+    if isTxt:
+        isTxt = False
+        summary = generate_summary(current_file_text)
+        messages.append({"role": "assistant", "content": f"{summary}"})
+        history[-1][1] = summary
         yield history
+    elif isFile:
+        isFile = False
+        if current_file_text:
+            answer = generate_answer(current_file_text, messages[-1]['content'])
+            assistant_message = answer
+        else:
+            assistant_message = "请先上传一个文件"
+        messages.append({"role": "assistant", "content": assistant_message})
+        history[-1][1] = assistant_message
+        yield history
+    else:
+        response_text = ""
 
-    messages.append({"role": "assistant", "content": response_text})
+        for chunk in chat(messages):
+            response_text += chunk
+            history[-1][1] = response_text
+            yield history
+
+        messages.append({"role": "assistant", "content": response_text})
 
 with gr.Blocks() as demo:
     chatbot = gr.Chatbot(
@@ -75,6 +102,7 @@ with gr.Blocks() as demo:
     file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
         bot, chatbot, chatbot
     )
+    
     clear_btn.click(lambda: messages.clear(), None, chatbot, queue=False)
 
 demo.queue()

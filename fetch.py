@@ -24,9 +24,8 @@ def format_content(processed_text: str, url: str):
 
 def fetch(url: str):
     """
-    TODO 处理如果不是指定的URL的情况
+    从指定的URL中提取内容并生成问题
     """
-    assert url == "https://dev.qweather.com/en/help", "The URL is not correct"
     content = fetch_content(url)
     question = format_content(content, url)
     return question

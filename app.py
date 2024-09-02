@@ -2,11 +2,13 @@ import gradio as gr
 import os
 import time
 from chat import chat
+from mnist import image_classification
 from search import search
 from tts import text2audio
 
 messages = []
 current_file_text = None
+image = ''
 
 def add_text(history, text):
     global messages
@@ -24,13 +26,19 @@ def add_text(history, text):
 
 def add_file(history, file):
     global messages
+    global image
     history = history + [((file.name,), None)]
-    messages.append({"role": "user", "content": f"File uploaded: {file.name}"})
+    if file.name.endswith(".png"):
+        messages.append({"role": "user", "content": f"Please classify {file.name}"})
+        image = file
+    else:
+        messages.append({"role": "user", "content": f"File uploaded: {file.name}"})
     
     return history
 
 def bot(history):
     global messages
+    global image
     
     response_text = ""
 
@@ -42,6 +50,12 @@ def bot(history):
         if audio_path:
             history[-1][1] = (audio_path, )
             yield history
+    # 检查是否是图像识别
+    if messages[-1]["role"] == "user" and messages[-1]["content"].startswith("Please classify "):
+        result = image_classification(file=image)
+        image = ''
+        history[-1][1] = result
+        yield history
     else:
         for chunk in chat(messages):
             response_text += chunk

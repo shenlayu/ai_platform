@@ -1,5 +1,5 @@
 import torch
-
+import torch.nn as nn
 
 class LeNet(torch.nn.Module):
     def __init__(self, num_classes=10):

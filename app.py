@@ -2,6 +2,7 @@ import gradio as gr
 import os
 import time
 from chat import chat
+from mnist import image_classification
 from search import search
 from fetch import fetch
 from stt import audio2text
@@ -12,6 +13,7 @@ messages = []
 current_file_text = None
 isTxt = False
 isFile = False
+image = ''
 
 def add_text(history, text):
     global messages, current_file_text, isFile
@@ -36,11 +38,14 @@ def add_text(history, text):
     return history, gr.update(value="", interactive=False)
 
 def add_file(history, file):
-    global messages, current_file_text, isTxt
+    global messages, current_file_text, isTxt, image
     history = history + [((file.name,), None)]
     if file.name.endswith(".wav"): # 检验是否是音频文件
         audio_text = audio2text(file.name)
         messages.append({"role": "user", "content": f"{audio_text}"})
+    elif file.name.endswith(".png"):
+        messages.append({"role": "user", "content": f"Please classify {file.name}"})
+        image = file
     elif file.name.endswith(".txt"): # 检验是否是txt文件，如果是，设置isTxt为True，用于bot中后续处理
         isTxt = True
         current_file_text = open(file.name).read()
@@ -51,7 +56,9 @@ def add_file(history, file):
     return history
 
 def bot(history):
-    global messages, current_file_text, isTxt, isFile
+    global messages, current_file_text, isTxt, isFile, image
+    response_text = ""
+    
     if isTxt: # 如果是txt文件，生成summary
         isTxt = False
         summary = generate_summary(current_file_text)
@@ -69,12 +76,19 @@ def bot(history):
         history[-1][1] = assistant_message
         yield history
     elif messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/audio "): # 检验是否是音频文件
+
         for chunk in chat(messages):
             response_text += chunk
         audio_path = text2audio(response_text)
         if audio_path:
             history[-1][1] = (audio_path, )
             yield history
+    # 检查是否是图像识别
+    if messages[-1]["role"] == "user" and messages[-1]["content"].startswith("Please classify "):
+        result = image_classification(file=image)
+        image = ''
+        history[-1][1] = result
+        yield history
     else:
         response_text = ""
 

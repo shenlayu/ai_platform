@@ -8,6 +8,7 @@ from fetch import fetch
 from stt import audio2text
 from pdf import generate_answer, generate_summary
 from tts import text2audio
+from image_generate import image_generate
 
 messages = []
 current_file_text = None
@@ -30,6 +31,10 @@ def add_text(history, text):
         question = text[len("/file "):].strip()
         user_message = question
         messages.append({"role": "user", "content": user_message})
+    elif text.startswith("/image"):
+        content = text[len("/image "):]
+        image_url = image_generate(content)
+        messages.append({"role": "user", "content": image_url})
     else:
         messages.append({"role": "user", "content": text})
 

@@ -84,6 +84,6 @@ def function_calling(messages: List[Dict]):
         return "No function calling"
 
 if __name__ == "__main__":
-    messages = [{"role": "user", "content": "What's the weather like in Beijing?"}]
+    messages = [{"role": "user", "content": "Add a todo: walk"}]
     response = function_calling(messages)
     print(response)

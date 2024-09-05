@@ -8,6 +8,7 @@ from fetch import fetch
 from stt import audio2text
 from pdf import generate_answer, generate_summary
 from tts import text2audio
+from function import function_calling
 from image_generate import image_generate
 
 messages = []
@@ -37,12 +38,13 @@ def add_text(history, text):
         messages.append({"role": "user", "content": fetch_result})
     elif text.startswith("/function "): # 检验是否是function命令
         function_url = text[len("/function "):]
-        function_result = function(function_url)
+        function_message = [{"role": "user", "content": function_url}]
+        function_result = function_calling(function_message)
         messages.append({"role": "user", "content": function_result})
     elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
         isFile = True
         question = text[len("/file "):].strip()
-        user_message = question
+        user_message = questionp
         messages.append({"role": "user", "content": user_message})
     #elif text.startswith("/image"):
     #    content = text[len("/image "):]

@@ -18,10 +18,11 @@ isFile = False
 isImage = False
 isImageGenerate = False
 isAudio = False
+isFunction = False
 image = ''
 
 def add_text(history, text):
-    global messages, current_file_text, isFile, isAudio, isImageGenerate
+    global messages, current_file_text, isFile, isAudio, isImageGenerate, isFunction
     if text.startswith("/search "):
         search_query = text[len("/search "):]
         search_result = search(search_query)
@@ -37,10 +38,9 @@ def add_text(history, text):
         fetch_result = fetch(fetch_url)
         messages.append({"role": "user", "content": fetch_result})
     elif text.startswith("/function "): # 检验是否是function命令
+        isFunction = True
         function_url = text[len("/function "):]
-        function_message = [{"role": "user", "content": function_url}]
-        function_result = function_calling(function_message)
-        messages.append({"role": "user", "content": function_result})
+        messages.append({"role": "user", "content": function_url})
     elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
         isFile = True
         question = text[len("/file "):].strip()
@@ -78,7 +78,7 @@ def add_file(history, file):
 
 def bot(history):
     try:
-        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio, isImageGenerate
+        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio, isImageGenerate, isFunction
         response_text = ""
 
         if isTxt: # 如果是txt文件，生成summary
@@ -113,6 +113,15 @@ def bot(history):
             if image_url:
                 history[-1][1] = (image_url, )
                 messages.append({"role": "assistant", "content": f"{image_url}"})
+                yield history
+        elif isFunction:
+            isFunction = False
+            messages_function = []
+            messages_function.append(messages[-1])
+            function_url = function_calling(messages_function)
+            if function_url:
+                history[-1][1] = function_url
+                messages.append({"role": "assistant", "content": f"{function_url}"})
                 yield history
         # 检查是否是图像识别
         elif isImage:

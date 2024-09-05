@@ -35,6 +35,10 @@ def add_text(history, text):
         fetch_url = text[len("/fetch "):]
         fetch_result = fetch(fetch_url)
         messages.append({"role": "user", "content": fetch_result})
+    elif text.startswith("/function "): # 检验是否是function命令
+        function_url = text[len("/function "):]
+        function_result = function(function_url)
+        messages.append({"role": "user", "content": function_result})
     elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
         isFile = True
         question = text[len("/file "):].strip()

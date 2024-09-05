@@ -26,9 +26,12 @@ def fetch(url: str):
     """
     从指定的URL中提取内容并生成问题
     """
-    content = fetch_content(url)
-    question = format_content(content, url)
-    return question
+    try:
+        content = fetch_content(url)
+        question = format_content(content, url)
+        return question
+    except:
+        return f"Please say \"Sorry, I couldn't fetch the url {url}\""
 
 
 if __name__ == "__main__":

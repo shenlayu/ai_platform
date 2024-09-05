@@ -14,14 +14,19 @@ messages = []
 current_file_text = None
 isTxt = False
 isFile = False
+isImage = False
+isAudio = False
 image = ''
 
 def add_text(history, text):
-    global messages, current_file_text, isFile
+    global messages, current_file_text, isFile, isAudio
     if text.startswith("/search "):
         search_query = text[len("/search "):]
         search_result = search(search_query)
         messages.append({"role": "user", "content": search_result})
+    elif text.startswith("/audio "):
+        isAudio = True
+        messages.append({"role": "user", "content": text})
     elif text.startswith("/fetch"): # 检验是否是fetch命令
         fetch_url = text[len("/fetch "):]
         fetch_result = fetch(fetch_url)
@@ -37,18 +42,18 @@ def add_text(history, text):
         messages.append({"role": "user", "content": image_url})
     else:
         messages.append({"role": "user", "content": text})
-
     history = history + [(text, None)]
     
     return history, gr.update(value="", interactive=False)
 
 def add_file(history, file):
-    global messages, current_file_text, isTxt, image
+    global messages, current_file_text, isTxt, isImage, image
     history = history + [((file.name,), None)]
     if file.name.endswith(".wav"): # 检验是否是音频文件
         audio_text = audio2text(file.name)
         messages.append({"role": "user", "content": f"{audio_text}"})
     elif file.name.endswith(".png"):
+        isImage = True
         messages.append({"role": "user", "content": f"Please classify {file.name}"})
         image = file
     elif file.name.endswith(".txt"): # 检验是否是txt文件，如果是，设置isTxt为True，用于bot中后续处理
@@ -61,48 +66,53 @@ def add_file(history, file):
     return history
 
 def bot(history):
-    global messages, current_file_text, isTxt, isFile, image
-    response_text = ""
-    
-    if isTxt: # 如果是txt文件，生成summary
-        isTxt = False
-        summary = generate_summary(current_file_text)
-        messages.append({"role": "assistant", "content": f"{summary}"})
-        history[-1][1] = summary
-        yield history
-    elif isFile: # 如果是file命令，生成answer
-        isFile = False
-        if current_file_text:
-            answer = generate_answer(current_file_text, messages[-1]['content'])
-            assistant_message = answer
-        else:
-            assistant_message = "请先上传一个文件"
-        messages.append({"role": "assistant", "content": assistant_message})
-        history[-1][1] = assistant_message
-        yield history
-    elif messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/audio "): # 检验是否是音频文件
-
-        for chunk in chat(messages):
-            response_text += chunk
-        audio_path = text2audio(response_text)
-        if audio_path:
-            history[-1][1] = (audio_path, )
-            yield history
-    # 检查是否是图像识别
-    if messages[-1]["role"] == "user" and messages[-1]["content"].startswith("Please classify "):
-        result = image_classification(file=image)
-        image = ''
-        history[-1][1] = result
-        yield history
-    else:
+    try:
+        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio
         response_text = ""
 
-        for chunk in chat(messages):
-            response_text += chunk
-            history[-1][1] = response_text
+        if isTxt: # 如果是txt文件，生成summary
+            isTxt = False
+            summary = generate_summary(current_file_text)
+            messages.append({"role": "assistant", "content": f"{summary}"})
+            history[-1][1] = summary
             yield history
+        elif isFile: # 如果是file命令，生成answer
+            isFile = False
+            if current_file_text:
+                answer = generate_answer(current_file_text, messages[-1]['content'])
+                assistant_message = answer
+            else:
+                assistant_message = "请先上传一个文件"
+            messages.append({"role": "assistant", "content": assistant_message})
+            history[-1][1] = assistant_message
+            yield history
+        elif isAudio: # 检验是否是音频文件
+            isAudio = False
+            for chunk in chat(messages):
+                response_text += chunk
+            audio_path = text2audio(response_text)
+            if audio_path:
+                history[-1][1] = (audio_path, )
+                yield history
+        # 检查是否是图像识别
+        elif isImage:
+            isImage = False
+            result = image_classification(file=image)
+            image = ''
+            history[-1][1] = result
+            yield history
+        else:
+            response_text = ""
 
-        messages.append({"role": "assistant", "content": response_text})
+            for chunk in chat(messages):
+                response_text += chunk
+                history[-1][1] = response_text
+                yield history
+
+            messages.append({"role": "assistant", "content": response_text})
+    except:
+        messages, current_file_text, isTxt, isFile, isImage, image, isAudio = messages, False, False, False, False, False, False
+
 
 with gr.Blocks() as demo:
     chatbot = gr.Chatbot(

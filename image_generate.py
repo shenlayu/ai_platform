@@ -26,8 +26,7 @@ def image_generate(content: str):
         return response.json()['data'][0]['url']
     else:
         # 错误输出
-        raise Exception(f"Failed to generate figure: {response.status_code} {response.text}")
-    pass
+        return f"Please say \"Failed to generate figure: {response.status_code} {response.text}\""
 
 if __name__ == "__main__":
     url = image_generate('floating hair, portrait, ((loli)), ((one girl)), cute face, hidden hands, asymmetrical bangs, beautiful detailed eyes, eye shadow, hair ornament, ribbons, bowties, buttons, pleated skirt, (((masterpiece))), ((best quality)), colorful|((part of the head)), ((((mutated hands and fingers)))), deformed, blurry, bad anatomy, disfigured, poorly drawn face, mutation, mutated, extra limb, ugly, poorly drawn hands, missing limb, blurry, floating limbs, disconnected limbs, malformed hands, blur, out of focus, long neck, long body, Octane renderer, lowres, bad anatomy, bad hands, text')

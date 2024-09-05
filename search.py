@@ -1,15 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
-
+from serpapi import BingSearch
 def search(content: str) -> str:
     params = {
         "engine": "bing",
         "q": "Coffee",
         "cc": "US",
-        "api_key": "948b3291d28c07eac5fbb7f0b49a69b5a51a1c0e24f53d5840562034666c9ad3"
+        "api_key": "775cd6dcce704bc414b64fe3afd11995cf2529841f84829e26c7c1f5bdca083a"
     }
-    search = GoogleSearch(params)
+    search = BingSearch(params)
     search_results = search.get_dict()
     
     if search_results and "organic_results" in search_results:

@@ -8,6 +8,7 @@ from fetch import fetch
 from stt import audio2text
 from pdf import generate_answer, generate_summary
 from tts import text2audio
+from function import function_calling
 from image_generate import image_generate
 
 messages = []
@@ -15,11 +16,12 @@ current_file_text = None
 isTxt = False
 isFile = False
 isImage = False
+isImageGenerate = False
 isAudio = False
 image = ''
 
 def add_text(history, text):
-    global messages, current_file_text, isFile, isAudio
+    global messages, current_file_text, isFile, isAudio, isImageGenerate
     if text.startswith("/search "):
         search_query = text[len("/search "):]
         search_result = search(search_query)
@@ -27,14 +29,22 @@ def add_text(history, text):
     elif text.startswith("/audio "):
         isAudio = True
         messages.append({"role": "user", "content": text})
+    elif text.startswith("/image "):
+        isImageGenerate = True
+        messages.append({"role": "user", "content": text})
     elif text.startswith("/fetch"): # 检验是否是fetch命令
         fetch_url = text[len("/fetch "):]
         fetch_result = fetch(fetch_url)
         messages.append({"role": "user", "content": fetch_result})
+    elif text.startswith("/function "): # 检验是否是function命令
+        function_url = text[len("/function "):]
+        function_message = [{"role": "user", "content": function_url}]
+        function_result = function_calling(function_message)
+        messages.append({"role": "user", "content": function_result})
     elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
         isFile = True
         question = text[len("/file "):].strip()
-        user_message = question
+        user_message = questionp
         messages.append({"role": "user", "content": user_message})
     #elif text.startswith("/image"):
     #    content = text[len("/image "):]
@@ -68,7 +78,7 @@ def add_file(history, file):
 
 def bot(history):
     try:
-        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio
+        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio, isImageGenerate
         response_text = ""
 
         if isTxt: # 如果是txt文件，生成summary
@@ -95,7 +105,8 @@ def bot(history):
             if audio_path:
                 history[-1][1] = (audio_path, )
                 yield history
-        elif messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/image "): # 检验是否是图片文件
+        elif isImageGenerate:
+            isImageGenerate = False
             text = messages[-1]["content"]
             content = text[len("/image "):]
             image_url = image_generate(content)
@@ -120,7 +131,7 @@ def bot(history):
 
             messages.append({"role": "assistant", "content": response_text})
     except:
-        messages, current_file_text, isTxt, isFile, isImage, image, isAudio = messages, False, False, False, False, False, False
+        messages, current_file_text, isTxt, isFile, isImage, image, isAudio, isImageGenerate = messages, False, False, False, False, False, False, False
 
 
 with gr.Blocks() as demo:

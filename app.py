@@ -36,10 +36,11 @@ def add_text(history, text):
         question = text[len("/file "):].strip()
         user_message = question
         messages.append({"role": "user", "content": user_message})
-    elif text.startswith("/image"):
-        content = text[len("/image "):]
-        image_url = image_generate(content)
-        messages.append({"role": "user", "content": image_url})
+    #elif text.startswith("/image"):
+    #    content = text[len("/image "):]
+    #    messages.append({"role": "user", "content": f'http://localhost:8080/generated-images/b644107623023.png'})
+    #    # image_url = image_generate(content)
+    #    messages.append({"role": "assistant", "content": f'http://localhost:8080/generated-images/b644107623023.png'})
     else:
         messages.append({"role": "user", "content": text})
     history = history + [(text, None)]
@@ -93,6 +94,14 @@ def bot(history):
             audio_path = text2audio(response_text)
             if audio_path:
                 history[-1][1] = (audio_path, )
+                yield history
+        elif messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/image "): # 检验是否是图片文件
+            text = messages[-1]["content"]
+            content = text[len("/image "):]
+            image_url = image_generate(content)
+            if image_url:
+                history[-1][1] = (image_url, )
+                messages.append({"role": "assistant", "content": f"{image_url}"})
                 yield history
         # 检查是否是图像识别
         elif isImage:

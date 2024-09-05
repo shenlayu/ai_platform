@@ -3,12 +3,7 @@ import requests
 import json
 
 def image_generate(content: str):
-    #set_url = "http://localhost:8080/models/apply"
-    #set_genarate = {
-    #    "url": "github:go-skynet/model-gallery/stablediffusion.yaml"
-    #}
-    #set_response = requests.post(set_url, data=set_genarate)
-    url = 'http://localhost:8080/v1/images/generations'
+    url = 'http://localhost:8080/v1/images/generations/'
     header = {
         "accept": "application/json",
         "Content-Type": "application/json"
@@ -18,7 +13,8 @@ def image_generate(content: str):
         "size": '256x256',
     }
     # print(json.dumps(generate))
-    response = requests.post(url, headers=header, data=json.dumps(generate))
+    data_json = json.dumps(generate)
+    response = requests.post(url, headers=header, data=data_json)
     # print(response.status_code) # code = 500
     if response.status_code == 200:
         # 定义保存路径并保存

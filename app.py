@@ -15,17 +15,21 @@ current_file_text = None
 isTxt = False
 isFile = False
 isImage = False
+isImageGenerate = False
 isAudio = False
 image = ''
 
 def add_text(history, text):
-    global messages, current_file_text, isFile, isAudio
+    global messages, current_file_text, isFile, isAudio, isImageGenerate
     if text.startswith("/search "):
         search_query = text[len("/search "):]
         search_result = search(search_query)
         messages.append({"role": "user", "content": search_result})
     elif text.startswith("/audio "):
         isAudio = True
+        messages.append({"role": "user", "content": text})
+    elif text.startswith("/image "):
+        isImageGenerate = True
         messages.append({"role": "user", "content": text})
     elif text.startswith("/fetch"): # 检验是否是fetch命令
         fetch_url = text[len("/fetch "):]
@@ -68,7 +72,7 @@ def add_file(history, file):
 
 def bot(history):
     try:
-        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio
+        global messages, current_file_text, isTxt, isFile, isImage, image, isAudio, isImageGenerate
         response_text = ""
 
         if isTxt: # 如果是txt文件，生成summary
@@ -95,7 +99,8 @@ def bot(history):
             if audio_path:
                 history[-1][1] = (audio_path, )
                 yield history
-        elif messages[-1]["role"] == "user" and messages[-1]["content"].startswith("/image "): # 检验是否是图片文件
+        elif isImageGenerate:
+            isImageGenerate = False
             text = messages[-1]["content"]
             content = text[len("/image "):]
             image_url = image_generate(content)
@@ -120,7 +125,7 @@ def bot(history):
 
             messages.append({"role": "assistant", "content": response_text})
     except:
-        messages, current_file_text, isTxt, isFile, isImage, image, isAudio = messages, False, False, False, False, False, False
+        messages, current_file_text, isTxt, isFile, isImage, image, isAudio, isImageGenerate = messages, False, False, False, False, False, False, False
 
 
 with gr.Blocks() as demo:

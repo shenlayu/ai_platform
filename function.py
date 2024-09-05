@@ -62,28 +62,43 @@ def add_todo(todo: str):
     if 'todo_list' not in globals():
         todo_list = []
     todo_list.append(todo)
+    # print(todo_list)
     return todo_list
 
 def function_calling(messages: List[Dict]):
+    response = []
+    result = []
+    id = 0
+    function_content = ""
     # 检查消息内容是否包含天气查询
-    if any("What's the weather like in " in message["content"] for message in messages):
-        weather_query = next(message["content"] for message in reversed(messages) if "What's the weather like in " in message["content"])
-        city = weather_query.split("What's the weather like in ", 1)[1].strip()
-        # 如果城市名称以问号结尾，去除问号
-        if city.endswith('?'):
-            city = city[:-1]
-        city_location_id = lookup_location_id(city)
-        # weather_info = get_current_weather(city_location_id)
-        return city_location_id
-    # 检查消息内容是否包含添加待办事项
-    elif any("Add a todo: " in message["content"] for message in messages):
-        todo_content = next(message["content"].split("Add a todo: ", 1)[1].strip() for message in reversed(messages) if "Add a todo: " in message["content"])
-        todo_list = add_todo(todo_content)
-        return f"{todo_list}"
-    else:
-        return "No function calling"
+    for message in messages:
+        if "What's the weather like in " in message["content"]:
+            weather_query = next(message["content"] for message in reversed(messages) if "What's the weather like in " in message["content"])
+            city = weather_query.split("What's the weather like in ", 1)[1].strip()
+            # 如果城市名称以问号结尾，去除问号
+            if city.endswith('?'):
+                city = city[:-1]
+            city_location_id = lookup_location_id(city)
+            weather_info = get_current_weather(city_location_id)
+            result.append(city_location_id)
+            id = 1
+        elif "Add a todo: " in message["content"]:
+            todo_content = message["content"].split("Add a todo: ", 1)[1].strip()
+            todo_list = add_todo(todo_content)
+            result = todo_list
+            id = 2
+
+    if (len(result) > 0):
+        if id == 2:
+            for i in range(len(result)):
+                function_content += f"-{result[i]}\n"
+        elif id == 1:
+            function_content += result[0]
+        else:
+            function_content = "Sorry, I didn't get that."
+    return function_content
 
 if __name__ == "__main__":
-    messages = [{"role": "user", "content": "Add a todo: walk"}]
+    messages = [{"role": "user", "content": "Add a todo: walk"},{"role": "user", "content": "Add a todo: swim"}]
     response = function_calling(messages)
     print(response)

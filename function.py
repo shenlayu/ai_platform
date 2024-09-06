@@ -11,29 +11,25 @@ def lookup_location_id(location: str):
         url = "https://geoapi.qweather.com/v2/city/lookup"
         params = {
             'location': location,
-            'key': '052117518d70409ba75dfbd38c615972'
+            'key': 'e6c15b192e8540dfb2dc5c17857580ff'
         }
-        params_json = json.dumps(params)
-        response = requests.get(url, params=params_json)
-        print("response")
+        response = requests.get(url, params=params)
         if response.status_code == 200:
             data = response.json()
-            print(data)
             if data["code"] == "200":
                 # 如果有id，则返回id
                 return data["location"][0]["id"]
             else:
                 print(f"error: {data['code']}")
                 return '101010100'
-        else:
-            print(f"failed: {response.status_code}")
         return None
     except:
         return '101010100'
 
-def get_current_weather(location: str):
+def get_current_weather(id: str):
     # 获取城市ID
-    location_id = lookup_location_id(location)
+    location_id = id
+    print(location_id)
     # 如果有多个location_id，选取第一个
     if isinstance(location_id, list) and len(location_id) > 0:
         location_id = location_id[0]
@@ -41,7 +37,7 @@ def get_current_weather(location: str):
         return "Sorry, I can't find the location"
 
     # 构建API请求URL
-    base_url = "https://api.qweather.com/v7/weather/now"
+    base_url = "https://devapi.qweather.com/v7/weather/now"
     params = {
         "location": location_id,
         "key": "052117518d70409ba75dfbd38c615972",  # API密钥
@@ -116,7 +112,7 @@ def function_calling(messages: List[Dict]):
     function_to_call = answer['choices'][0]['message']['function_call']['function']
     if function_to_call == 'get_current_weather':
 
-        weather_query = messages[0]
+        weather_query = messages[0]['content']
         city = weather_query.split("What's the weather like in ", 1)[1].strip()
         # 如果城市名称以问号结尾，去除问号
         if city.endswith('?'):
@@ -172,6 +168,6 @@ def function_calling(messages: List[Dict]):
     # return function_content
 
 if __name__ == "__main__":
-    messages = [{"role": "user", "content": "Add a todo: walk"},{"role": "user", "content": "Add a todo: swim"}]
+    messages = [{"role": "user", "content": "What's the weather like in Beijing?"},{"role": "user", "content": "Add a todo: swim"}]
     response = function_calling(messages)
     print(response)

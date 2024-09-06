@@ -27,14 +27,11 @@ def fetch(url: str):
     从指定的URL中提取内容并生成问题
     """
     try:
-        if url != "https://dev.qweather.com/en/help":
-            content = fetch_content(url)
-            question = format_content(content, url)
-            return question
-        else:
-            return "Sorry, I couldn't fetch the url https://dev.qweather.com/en/help"
+        content = fetch_content(url)
+        question = format_content(content, url)
+        return question
     except:
-        return f"it is not a valid url: {url}, it should be https://dev.qweather.com/en/help"
+        return f"Please say \"Sorry, I couldn't fetch the url {url}\""
 
 
 if __name__ == "__main__":

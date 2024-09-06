@@ -44,7 +44,7 @@ def add_text(history, text):
     elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
         isFile = True
         question = text[len("/file "):].strip()
-        user_message = questionp
+        user_message = question
         messages.append({"role": "user", "content": user_message})
     #elif text.startswith("/image"):
     #    content = text[len("/image "):]
@@ -83,20 +83,24 @@ def bot(history):
 
         if isTxt: # 如果是txt文件，生成summary
             isTxt = False
-            summary = generate_summary(current_file_text)
-            messages.append({"role": "assistant", "content": f"{summary}"})
-            history[-1][1] = summary
-            yield history
+            response_text = ""
+            for chunk in generate_summary(current_file_text):
+                response_text += chunk
+                history[-1][1] = response_text
+                yield history
+            messages.append({"role": "assistant", "content": f"{response_text}"})
         elif isFile: # 如果是file命令，生成answer
             isFile = False
             if current_file_text:
-                answer = generate_answer(current_file_text, messages[-1]['content'])
-                assistant_message = answer
+                response_text = ""
+
+                for chunk in generate_answer(current_file_text, messages[-1]['content']):
+                    response_text += chunk
+                    history[-1][1] = response_text
+                    yield history
             else:
-                assistant_message = "请先上传一个文件"
-            messages.append({"role": "assistant", "content": assistant_message})
-            history[-1][1] = assistant_message
-            yield history
+                response_text = "请先上传一个文件"
+            messages.append({"role": "assistant", "content": response_text})
         elif isAudio: # 检验是否是音频文件
             isAudio = False
             for chunk in chat(messages):

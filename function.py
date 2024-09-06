@@ -2,29 +2,34 @@ import os
 import requests
 import json
 from typing import List, Dict
+import openai
 
 def lookup_location_id(location: str):
-    # 城市搜索
-    print(location)
-    url = "https://geoapi.qweather.com/v2/city/lookup"
-    params = {
-        'location': location,
-        'key': '052117518d70409ba75dfbd38c615972'
-    }
-    params_json = json.dumps(params)
-    response = requests.get(url, params=params_json)
-    print("response")
-    if response.status_code == 200:
-        data = response.json()
-        print(data)
-        if data["code"] == "200":
-            # 如果有id，则返回id
-            return data["location"][0]["id"]
+    try:
+        # 城市搜索
+        print(location)
+        url = "https://geoapi.qweather.com/v2/city/lookup"
+        params = {
+            'location': location,
+            'key': '052117518d70409ba75dfbd38c615972'
+        }
+        params_json = json.dumps(params)
+        response = requests.get(url, params=params_json)
+        print("response")
+        if response.status_code == 200:
+            data = response.json()
+            print(data)
+            if data["code"] == "200":
+                # 如果有id，则返回id
+                return data["location"][0]["id"]
+            else:
+                print(f"error: {data['code']}")
+                return '101010100'
         else:
-            print(f"error: {data['code']}")
-    else:
-        print(f"failed: {response.status_code}")
-    return None
+            print(f"failed: {response.status_code}")
+        return None
+    except:
+        return '101010100'
 
 def get_current_weather(location: str):
     # 获取城市ID
@@ -70,23 +75,62 @@ def function_calling(messages: List[Dict]):
     result = []
     id = 0
     function_content = ""
-    # 检查消息内容是否包含天气查询
-    for message in messages:
-        if "What's the weather like in " in message["content"]:
-            weather_query = next(message["content"] for message in reversed(messages) if "What's the weather like in " in message["content"])
-            city = weather_query.split("What's the weather like in ", 1)[1].strip()
-            # 如果城市名称以问号结尾，去除问号
-            if city.endswith('?'):
-                city = city[:-1]
-            city_location_id = lookup_location_id(city)
-            weather_info = get_current_weather(city_location_id)
-            result.append(city_location_id)
-            id = 1
-        elif "Add a todo: " in message["content"]:
-            todo_content = message["content"].split("Add a todo: ", 1)[1].strip()
-            todo_list = add_todo(todo_content)
-            result = todo_list
-            id = 2
+    functions = [
+        {
+            "name": "get_current_weather",
+            "description": "TODO",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "TODO",
+                    },
+                },
+                "required": ["location"],
+            },
+        },
+        {
+            "name": "add_todo",
+            "description": "TODO",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "todo": {
+                        "type": "string",
+                        "description": "TODO",
+                    }
+                },
+                "required": ["todo"],
+            },
+        }
+    ]
+
+    openai.api_base = "http://localhost:8080/v1"
+    openai.api_key = 'hahahaha'
+
+    answer = openai.ChatCompletion.create(model="ggml-openllama.bin", messages=messages, functions=functions,
+                                       function_call="auto",)
+
+    print(answer)
+    function_to_call = answer['choices'][0]['message']['function_call']['function']
+    if function_to_call == 'get_current_weather':
+
+        weather_query = messages[0]
+        city = weather_query.split("What's the weather like in ", 1)[1].strip()
+        # 如果城市名称以问号结尾，去除问号
+        if city.endswith('?'):
+            city = city[:-1]
+        city_location_id = lookup_location_id(city)
+        weather_info = get_current_weather(city_location_id)
+        result.append(weather_info)
+        id = 1
+
+    elif function_to_call == 'add_todo':
+        todo_content = messages[0]["content"].split("Add a todo: ", 1)[1].strip()
+        todo_list = add_todo(todo_content)
+        result = todo_list
+        id = 2
 
     if (len(result) > 0):
         if id == 2:
@@ -97,6 +141,35 @@ def function_calling(messages: List[Dict]):
         else:
             function_content = "Sorry, I didn't get that."
     return function_content
+
+
+    # # 检查消息内容是否包含天气查询
+    # for message in messages:
+    #     if "What's the weather like in " in message["content"]:
+    #         weather_query = next(message["content"] for message in reversed(messages) if "What's the weather like in " in message["content"])
+    #         city = weather_query.split("What's the weather like in ", 1)[1].strip()
+    #         # 如果城市名称以问号结尾，去除问号
+    #         if city.endswith('?'):
+    #             city = city[:-1]
+    #         city_location_id = lookup_location_id(city)
+    #         weather_info = get_current_weather(city_location_id)
+    #         result.append(weather_info)
+    #         id = 1
+    #     elif "Add a todo: " in message["content"]:
+    #         todo_content = message["content"].split("Add a todo: ", 1)[1].strip()
+    #         todo_list = add_todo(todo_content)
+    #         result = todo_list
+    #         id = 2
+    #
+    # if (len(result) > 0):
+    #     if id == 2:
+    #         for i in range(len(result)):
+    #             function_content += f"-{result[i]}\n"
+    #     elif id == 1:
+    #         function_content += result[0]
+    #     else:
+    #         function_content = "Sorry, I didn't get that."
+    # return function_content
 
 if __name__ == "__main__":
     messages = [{"role": "user", "content": "Add a todo: walk"},{"role": "user", "content": "Add a todo: swim"}]

@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
 from serpapi import BingSearch
+
 def search(content: str) -> str:
     params = {
         "engine": "bing",

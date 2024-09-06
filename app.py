@@ -44,7 +44,7 @@ def add_text(history, text):
     elif text.startswith("/file"): # 检验是否是file命令, 如果是，设置isFile为True，用于bot中后续处理
         isFile = True
         question = text[len("/file "):].strip()
-        user_message = questionp
+        user_message = question
         messages.append({"role": "user", "content": user_message})
     #elif text.startswith("/image"):
     #    content = text[len("/image "):]

@@ -1,3 +1,5 @@
+import re
+
 import os
 import requests
 import json
@@ -37,10 +39,10 @@ def get_current_weather(id: str):
         return "Sorry, I can't find the location"
 
     # 构建API请求URL
-    base_url = "https://devapi.qweather.com/v7/weather/now"
+    base_url = "https://api.qweather.com/v7/weather/now"
     params = {
         "location": location_id,
-        "key": "052117518d70409ba75dfbd38c615972",  # API密钥
+        "key": "0631f557d4bd4c19994cdae83bdc39bc",  # API密钥
         "lang": "zh"  
     }
 
@@ -112,19 +114,20 @@ def function_calling(messages: List[Dict]):
     function_to_call = answer['choices'][0]['message']['function_call']['function']
     if function_to_call == 'get_current_weather':
 
-        weather_query = messages[0]['content']
-        city = weather_query.split("What's the weather like in ", 1)[1].strip()
-        # 如果城市名称以问号结尾，去除问号
-        if city.endswith('?'):
-            city = city[:-1]
-        city_location_id = lookup_location_id(city)
+        print(answer['choices'][0]['message']['function_call']['arguments'])
+        p = re.findall('.*\"location\":\"(.*)\".*',answer['choices'][0]['message']['function_call']['arguments'])
+
+        city_location_id = lookup_location_id(p[0])
         weather_info = get_current_weather(city_location_id)
         result.append(weather_info)
         id = 1
 
     elif function_to_call == 'add_todo':
-        todo_content = messages[0]["content"].split("Add a todo: ", 1)[1].strip()
-        todo_list = add_todo(todo_content)
+        # todo_content = messages[0]["content"].split("Add a todo: ", 1)[1].strip()
+        print(answer['choices'][0]['message']['function_call']['arguments'])
+        p = re.findall('.*\"todo\":\"(.*)\".*', answer['choices'][0]['message']['function_call']['arguments'])
+        print(p)
+        todo_list = add_todo(p[0])
         result = todo_list
         id = 2
 
